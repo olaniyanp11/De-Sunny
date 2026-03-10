@@ -274,7 +274,7 @@ export default function Index({ orders, filters }) {
                                 </tr>
                             </thead>
                             <tbody>
-                                {orders.map((order) => (
+                                {orders.data.map((order) => (
                                     <tr
                                         key={order.id}
                                         style={{
@@ -326,7 +326,7 @@ export default function Index({ orders, filters }) {
                             </tbody>
                         </table>
 
-                        {orders.length === 0 && (
+                        {orders.data.length === 0 && (
                             <div
                                 style={{
                                     padding: 64,
