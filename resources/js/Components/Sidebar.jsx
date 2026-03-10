@@ -7,7 +7,8 @@ import {
     HiOutlineChartBar,
     HiOutlineTrendingUp,
     HiOutlineCog,
-    HiOutlineLogout
+    HiOutlineLogout,
+    HiOutlineClock
 } from "react-icons/hi";
 
 const COLORS = {
@@ -49,6 +50,13 @@ const getNavItems = (userRole) => {
     if (userRole === 'admin') {
         baseItems.push(
             { id: "users", label: "USERS", icon: HiOutlineUsers, route: "users.index" },
+        );
+    }
+
+    // Activity Logs - Admin and Manager only
+    if (userRole === 'admin' || userRole === 'manager') {
+        baseItems.push(
+            { id: "activity-logs", label: "ACTIVITY LOGS", icon: HiOutlineClock, route: "activity-logs.index" },
         );
     }
 

@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
-import { Link, router } from '@inertiajs/react';
-import Sidebar from '@/Components/Sidebar';
+import React, { useState } from "react";
+import { Link, router } from "@inertiajs/react";
+import Sidebar from "@/Components/Sidebar";
 
 const COLORS = {
     bg: "#0a0a0a",
@@ -20,69 +20,89 @@ const COLORS = {
 
 export default function Create({ products, errors }) {
     const [cart, setCart] = useState([]);
-    const [selectedCategory, setSelectedCategory] = useState('');
+    const [selectedCategory, setSelectedCategory] = useState("");
+    const [searchQuery, setSearchQuery] = useState("");
     const [processing, setProcessing] = useState(false);
 
-    const categories = [...new Set(products.map(p => p.category?.name).filter(Boolean))];
+    const categories = [
+        ...new Set(products.map((p) => p.category?.name).filter(Boolean)),
+    ];
 
-    const filteredProducts = selectedCategory ? products.filter(p => p.category === selectedCategory) : products;
+    const filteredProducts = products.filter((product) => {
+        const matchesCategory = selectedCategory
+            ? product.category?.name === selectedCategory
+            : true;
+        const matchesSearch = searchQuery
+            ? product.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+              (product.sku && product.sku.toLowerCase().includes(searchQuery.toLowerCase()))
+            : true;
+        return matchesCategory && matchesSearch;
+    });
 
     const addToCart = (product) => {
-        const existing = cart.find(item => item.product_id === product.id);
+        const existing = cart.find((item) => item.product_id === product.id);
         const currentQuantity = existing ? existing.quantity : 0;
-        if (currentQuantity >= product.stock) return; // Prevent adding more than stock
+        if (currentQuantity >= product.stock) return;
 
         if (existing) {
-            setCart(cart.map(item =>
-                item.product_id === product.id
-                    ? { ...item, quantity: item.quantity + 1 }
-                    : item
-            ));
+            setCart(
+                cart.map((item) =>
+                    item.product_id === product.id
+                        ? { ...item, quantity: item.quantity + 1 }
+                        : item,
+                ),
+            );
         } else {
-            setCart([...cart, {
-                product_id: product.id,
-                quantity: 1,
-                price: product.price,
-                name: product.name,
-            }]);
+            setCart([
+                ...cart,
+                {
+                    product_id: product.id,
+                    quantity: 1,
+                    price: product.price,
+                    name: product.name,
+                },
+            ]);
         }
     };
 
     const updateQuantity = (productId, quantity) => {
-        const product = products.find(p => p.id === productId);
-        if (quantity > product.stock) return; // Prevent exceeding stock
+        const product = products.find((p) => p.id === productId);
+        if (!product || quantity > product.stock) return;
 
         if (quantity <= 0) {
-            setCart(cart.filter(item => item.product_id !== productId));
+            setCart(cart.filter((item) => item.product_id !== productId));
         } else {
-            setCart(cart.map(item =>
-                item.product_id === productId
-                    ? { ...item, quantity }
-                    : item
-            ));
+            setCart(
+                cart.map((item) =>
+                    item.product_id === productId
+                        ? { ...item, quantity }
+                        : item,
+                ),
+            );
         }
     };
 
-    const total = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+    const total = cart.reduce(
+        (sum, item) => sum + item.price * item.quantity,
+        0,
+    );
 
     const handleCheckout = () => {
         if (cart.length === 0) return;
 
         setProcessing(true);
-        console.log('Submitting order with cart:', cart);
-        console.log('Items to send:', cart.map(item => ({
-            product_id: item.product_id,
-            quantity: item.quantity,
-        })));
-
-        router.post(route('orders.store'), {
-            items: cart.map(item => ({
-                product_id: item.product_id,
-                quantity: item.quantity,
-            })),
-        }, {
-            onFinish: () => setProcessing(false),
-        });
+        router.post(
+            route("orders.store"),
+            {
+                items: cart.map((item) => ({
+                    product_id: item.product_id,
+                    quantity: item.quantity,
+                })),
+            },
+            {
+                onFinish: () => setProcessing(false),
+            },
+        );
     };
 
     return (
@@ -128,19 +148,41 @@ export default function Create({ products, errors }) {
                             SELECT PRODUCTS
                         </h1>
 
+                        {/* Search Bar */}
+                        <div style={{ marginBottom: 16 }}>
+                            <input
+                                type="text"
+                                placeholder="Search products by name or SKU..."
+                                value={searchQuery}
+                                onChange={(e) => setSearchQuery(e.target.value)}
+                                style={{
+                                    background: COLORS.bg,
+                                    border: "1px solid " + COLORS.border,
+                                    color: COLORS.text,
+                                    padding: "10px 14px",
+                                    fontSize: 14,
+                                    fontFamily: "'DM Mono', monospace",
+                                    width: "100%",
+                                    maxWidth: 400,
+                                }}
+                            />
+                        </div>
+
                         {/* Category Filter */}
                         <div style={{ marginBottom: 16 }}>
                             <select
                                 value={selectedCategory}
-                                onChange={(e) => setSelectedCategory(e.target.value)}
+                                onChange={(e) =>
+                                    setSelectedCategory(e.target.value)
+                                }
                                 style={{
                                     background: COLORS.bg,
-                                    border: `1px solid ${COLORS.border}`,
+                                    border: "1px solid " + COLORS.border,
                                     color: COLORS.text,
-                                    padding: '8px 12px',
+                                    padding: "8px 12px",
                                     fontSize: 14,
                                     fontFamily: "'DM Mono', monospace",
-                                    width: '100%',
+                                    width: "100%",
                                     maxWidth: 300,
                                 }}
                             >
@@ -153,10 +195,15 @@ export default function Create({ products, errors }) {
                             </select>
                         </div>
 
+                        <p style={{ color: COLORS.muted, marginBottom: 16, fontSize: 14 }}>
+                            Showing {filteredProducts.length} of {products.length} products
+                        </p>
+
                         <div
                             style={{
                                 display: "grid",
-                                gridTemplateColumns: "repeat(auto-fill, minmax(250px, 1fr))",
+                                gridTemplateColumns:
+                                    "repeat(auto-fill, minmax(250px, 1fr))",
                                 gap: 16,
                             }}
                         >
@@ -165,27 +212,55 @@ export default function Create({ products, errors }) {
                                     key={product.id}
                                     style={{
                                         background: COLORS.surface,
-                                        border: `1px solid ${COLORS.border}`,
+                                        border: "1px solid " + COLORS.border,
                                         padding: 16,
                                     }}
                                 >
                                     <h3
                                         style={{
                                             fontSize: 16,
-                                            fontFamily: "'Barlow Condensed', sans-serif",
+                                            fontFamily:
+                                                "'Barlow Condensed', sans-serif",
                                             fontWeight: 600,
                                             marginBottom: 8,
                                         }}
                                     >
                                         {product.name}
                                     </h3>
-                                    <p style={{ color: COLORS.muted, fontSize: 12, marginBottom: 8 }}>
+                                    <p
+                                        style={{
+                                            color: COLORS.muted,
+                                            fontSize: 12,
+                                            marginBottom: 8,
+                                        }}
+                                    >
+                                        SKU: {product.sku}
+                                    </p>
+                                    <p
+                                        style={{
+                                            color: COLORS.muted,
+                                            fontSize: 12,
+                                            marginBottom: 8,
+                                        }}
+                                    >
                                         {product.category?.name}
                                     </p>
-                                    <p style={{ color: COLORS.yellow, fontSize: 18, marginBottom: 8 }}>
+                                    <p
+                                        style={{
+                                            color: COLORS.yellow,
+                                            fontSize: 18,
+                                            marginBottom: 8,
+                                        }}
+                                    >
                                         ₦{product.price}
                                     </p>
-                                    <p style={{ color: COLORS.muted, fontSize: 12, marginBottom: 16 }}>
+                                    <p
+                                        style={{
+                                            color: COLORS.muted,
+                                            fontSize: 12,
+                                            marginBottom: 16,
+                                        }}
+                                    >
                                         Stock: {product.stock}
                                     </p>
                                     <button
@@ -193,16 +268,23 @@ export default function Create({ products, errors }) {
                                         disabled={product.stock <= 0}
                                         style={{
                                             width: "100%",
-                                            background: product.stock > 0 ? COLORS.yellow : COLORS.muted,
+                                            background:
+                                                product.stock > 0
+                                                    ? COLORS.yellow
+                                                    : COLORS.muted,
                                             color: COLORS.bg,
                                             border: "none",
                                             padding: "8px",
                                             fontSize: 12,
-                                            fontFamily: "'Barlow Condensed', sans-serif",
+                                            fontFamily:
+                                                "'Barlow Condensed', sans-serif",
                                             fontWeight: 600,
                                             textTransform: "uppercase",
                                             letterSpacing: "0.05em",
-                                            cursor: product.stock > 0 ? "pointer" : "not-allowed",
+                                            cursor:
+                                                product.stock > 0
+                                                    ? "pointer"
+                                                    : "not-allowed",
                                         }}
                                     >
                                         ADD TO CART
@@ -210,6 +292,18 @@ export default function Create({ products, errors }) {
                                 </div>
                             ))}
                         </div>
+
+                        {filteredProducts.length === 0 && (
+                            <div
+                                style={{
+                                    textAlign: "center",
+                                    padding: 48,
+                                    color: COLORS.muted,
+                                }}
+                            >
+                                No products found matching your search.
+                            </div>
+                        )}
                     </div>
 
                     {/* Cart */}
@@ -230,13 +324,18 @@ export default function Create({ products, errors }) {
                         <div
                             style={{
                                 background: COLORS.surface,
-                                border: `1px solid ${COLORS.border}`,
+                                border: "1px solid " + COLORS.border,
                                 padding: 16,
                                 marginBottom: 16,
                             }}
                         >
                             {cart.length === 0 ? (
-                                <p style={{ color: COLORS.muted, textAlign: "center" }}>
+                                <p
+                                    style={{
+                                        color: COLORS.muted,
+                                        textAlign: "center",
+                                    }}
+                                >
                                     No items in cart
                                 </p>
                             ) : (
@@ -249,20 +348,41 @@ export default function Create({ products, errors }) {
                                             alignItems: "center",
                                             marginBottom: 8,
                                             paddingBottom: 8,
-                                            borderBottom: `1px solid ${COLORS.border}`,
+                                            borderBottom: "1px solid " + COLORS.border,
                                         }}
                                     >
                                         <div>
-                                            <p style={{ fontSize: 14, marginBottom: 4 }}>
+                                            <p
+                                                style={{
+                                                    fontSize: 14,
+                                                    marginBottom: 4,
+                                                }}
+                                            >
                                                 {item.name}
                                             </p>
-                                            <p style={{ color: COLORS.yellow, fontSize: 12 }}>
+                                            <p
+                                                style={{
+                                                    color: COLORS.yellow,
+                                                    fontSize: 12,
+                                                }}
+                                            >
                                                 ₦{item.price} x {item.quantity}
                                             </p>
                                         </div>
-                                        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                                        <div
+                                            style={{
+                                                display: "flex",
+                                                alignItems: "center",
+                                                gap: 8,
+                                            }}
+                                        >
                                             <button
-                                                onClick={() => updateQuantity(item.product_id, item.quantity - 1)}
+                                                onClick={() =>
+                                                    updateQuantity(
+                                                        item.product_id,
+                                                        item.quantity - 1,
+                                                    )
+                                                }
                                                 style={{
                                                     background: COLORS.border,
                                                     color: COLORS.text,
@@ -276,7 +396,12 @@ export default function Create({ products, errors }) {
                                             </button>
                                             <span>{item.quantity}</span>
                                             <button
-                                                onClick={() => updateQuantity(item.product_id, item.quantity + 1)}
+                                                onClick={() =>
+                                                    updateQuantity(
+                                                        item.product_id,
+                                                        item.quantity + 1,
+                                                    )
+                                                }
                                                 style={{
                                                     background: COLORS.border,
                                                     color: COLORS.text,
@@ -297,7 +422,7 @@ export default function Create({ products, errors }) {
                         <div
                             style={{
                                 background: COLORS.surface,
-                                border: `1px solid ${COLORS.border}`,
+                                border: "1px solid " + COLORS.border,
                                 padding: 16,
                                 marginBottom: 16,
                             }}
@@ -311,18 +436,20 @@ export default function Create({ products, errors }) {
                                 }}
                             >
                                 <span>TOTAL:</span>
-                                <span style={{ color: COLORS.yellow }}>₦{total.toFixed(2)}</span>
+                                <span style={{ color: COLORS.yellow }}>
+                                    ₦{total.toFixed(2)}
+                                </span>
                             </div>
                         </div>
 
-                        {errors?.error && (
+                        {errors && errors.error && (
                             <div
                                 style={{
                                     background: COLORS.red,
                                     color: COLORS.text,
                                     padding: 16,
                                     marginBottom: 16,
-                                    border: `1px solid ${COLORS.border}`,
+                                    border: "1px solid " + COLORS.border,
                                 }}
                             >
                                 {errors.error}
@@ -334,7 +461,10 @@ export default function Create({ products, errors }) {
                             disabled={cart.length === 0 || processing}
                             style={{
                                 width: "100%",
-                                background: cart.length > 0 ? COLORS.green : COLORS.muted,
+                                background:
+                                    cart.length > 0
+                                        ? COLORS.green
+                                        : COLORS.muted,
                                 color: COLORS.bg,
                                 border: "none",
                                 padding: "16px",
@@ -343,14 +473,17 @@ export default function Create({ products, errors }) {
                                 fontSize: 15,
                                 letterSpacing: "0.15em",
                                 textTransform: "uppercase",
-                                cursor: cart.length > 0 && !processing ? "pointer" : "not-allowed",
+                                cursor:
+                                    cart.length > 0 && !processing
+                                        ? "pointer"
+                                        : "not-allowed",
                             }}
                         >
-                            {processing ? 'PROCESSING...' : 'CHECKOUT'}
+                            {processing ? "PROCESSING..." : "CHECKOUT"}
                         </button>
 
                         <Link
-                            href={route('orders.index')}
+                            href={route("orders.index")}
                             style={{
                                 display: "block",
                                 textAlign: "center",
@@ -372,3 +505,4 @@ export default function Create({ products, errors }) {
         </div>
     );
 }
+

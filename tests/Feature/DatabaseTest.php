@@ -5,25 +5,31 @@ namespace Tests\Feature;
 use App\Models\Product;
 use App\Models\Category;
 use Tests\TestCase;
+use Illuminate\Foundation\Testing\RefreshDatabase;
 
 class DatabaseTest extends TestCase
 {
+    use RefreshDatabase;
+    
     public function test_database_has_products_with_categories()
     {
-        // This test runs on the actual database, not refresh
-        $products = \App\Models\Product::with('category')->get();
+        // Create test data
+        $category = Category::create([
+            'name' => 'Test Category',
+        ]);
         
-        dump('Products in database:');
-        foreach ($products as $product) {
-            dump([
-                'id' => $product->id,
-                'name' => $product->name,
-                'stock' => $product->stock,
-                'category_id' => $product->category_id,
-                'category_name' => $product->category?->name,
-            ]);
-        }
+        Product::create([
+            'name' => 'Test Product',
+            'sku' => 'TEST-001',
+            'price' => 100.00,
+            'stock' => 50,
+            'description' => 'Test description',
+            'category_id' => $category->id,
+        ]);
+        
+        $products = Product::with('category')->get();
         
         $this->assertGreaterThan(0, $products->count(), 'No products in database');
+        $this->assertNotNull($products->first()->category, 'Product has no category');
     }
 }

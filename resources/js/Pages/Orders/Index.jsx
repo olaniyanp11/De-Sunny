@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Link, router } from '@inertiajs/react';
+import { Link, router, usePage } from '@inertiajs/react';
 import Sidebar from '@/Components/Sidebar';
 
 const COLORS = {
@@ -18,20 +18,46 @@ const COLORS = {
     orange: "#fb923c",
 };
 
-export default function Index({ orders, filters }) {
+export default function Index({ orders, filters, users, products }) {
+    const { auth } = usePage().props;
     const [search, setSearch] = useState(filters.search || '');
-    const [date, setDate] = useState(filters.date || '');
+    const [status, setStatus] = useState(filters.status || 'all');
+    const [userId, setUserId] = useState(filters.user_id || '');
+    const [productId, setProductId] = useState(filters.product_id || '');
+    const [minAmount, setMinAmount] = useState(filters.min_amount || '');
+    const [maxAmount, setMaxAmount] = useState(filters.max_amount || '');
+    const [dateFrom, setDateFrom] = useState(filters.date_from || '');
+    const [dateTo, setDateTo] = useState(filters.date_to || '');
+    const [showAdvanced, setShowAdvanced] = useState(false);
+
+    const isAdminOrManager = auth.user.role === 'admin' || auth.user.role === 'manager';
 
     const handleSearch = (e) => {
         e.preventDefault();
-        router.get(route('orders.index'), { search, date }, { preserveState: true });
+        router.get(route('orders.index'), {
+            search,
+            status: status !== 'all' ? status : '',
+            user_id: userId,
+            product_id: productId,
+            min_amount: minAmount,
+            max_amount: maxAmount,
+            date_from: dateFrom,
+            date_to: dateTo
+        }, { preserveState: true });
     };
 
     const clearFilters = () => {
         setSearch('');
-        setDate('');
+        setStatus('all');
+        setUserId('');
+        setProductId('');
+        setMinAmount('');
+        setMaxAmount('');
+        setDateFrom('');
+        setDateTo('');
         router.get(route('orders.index'), {}, { preserveState: true });
     };
+
     return (
         <div
             style={{
@@ -105,60 +131,17 @@ export default function Index({ orders, filters }) {
                             marginBottom: 32,
                         }}
                     >
-                        <form onSubmit={handleSearch} style={{ display: 'flex', gap: 16, alignItems: 'center' }}>
-                            <input
-                                type="text"
-                                placeholder="Search by Order ID or Customer Name"
-                                value={search}
-                                onChange={(e) => setSearch(e.target.value)}
-                                style={{
-                                    flex: 1,
-                                    background: COLORS.bg,
-                                    border: `1px solid ${COLORS.border}`,
-                                    color: COLORS.text,
-                                    padding: '8px 12px',
-                                    fontSize: 14,
-                                    fontFamily: "'DM Mono', monospace",
-                                }}
-                            />
-                            <input
-                                type="date"
-                                value={date}
-                                onChange={(e) => setDate(e.target.value)}
-                                style={{
-                                    background: COLORS.bg,
-                                    border: `1px solid ${COLORS.border}`,
-                                    color: COLORS.text,
-                                    padding: '8px 12px',
-                                    fontSize: 14,
-                                    fontFamily: "'DM Mono', monospace",
-                                }}
-                            />
-                            <button
-                                type="submit"
-                                style={{
-                                    background: COLORS.yellow,
-                                    color: COLORS.bg,
-                                    border: 'none',
-                                    padding: '8px 16px',
-                                    fontSize: 12,
-                                    fontFamily: "'Barlow Condensed', sans-serif",
-                                    fontWeight: 600,
-                                    textTransform: 'uppercase',
-                                    letterSpacing: '0.05em',
-                                    cursor: 'pointer',
-                                }}
-                            >
-                                SEARCH
-                            </button>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+                            <h3 style={{ fontSize: 14, fontWeight: 600, color: COLORS.yellow, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                                Filters
+                            </h3>
                             <button
                                 type="button"
-                                onClick={clearFilters}
+                                onClick={() => setShowAdvanced(!showAdvanced)}
                                 style={{
-                                    background: COLORS.border,
-                                    color: COLORS.text,
+                                    background: 'transparent',
+                                    color: COLORS.yellow,
                                     border: 'none',
-                                    padding: '8px 16px',
                                     fontSize: 12,
                                     fontFamily: "'Barlow Condensed', sans-serif",
                                     fontWeight: 600,
@@ -167,8 +150,184 @@ export default function Index({ orders, filters }) {
                                     cursor: 'pointer',
                                 }}
                             >
-                                CLEAR
+                                {showAdvanced ? 'Hide Advanced' : 'Show Advanced'}
                             </button>
+                        </div>
+
+                        <form onSubmit={handleSearch}>
+                            {/* Basic Filters */}
+                            <div style={{ display: 'flex', gap: 16, alignItems: 'center', marginBottom: showAdvanced ? 16 : 0 }}>
+                                <input
+                                    type="text"
+                                    placeholder="Search by Order ID, Customer, or Product"
+                                    value={search}
+                                    onChange={(e) => setSearch(e.target.value)}
+                                    style={{
+                                        flex: 1,
+                                        background: COLORS.bg,
+                                        border: `1px solid ${COLORS.border}`,
+                                        color: COLORS.text,
+                                        padding: '8px 12px',
+                                        fontSize: 14,
+                                        fontFamily: "'DM Mono', monospace",
+                                    }}
+                                />
+                                <select
+                                    value={status}
+                                    onChange={(e) => setStatus(e.target.value)}
+                                    style={{
+                                        background: COLORS.bg,
+                                        border: `1px solid ${COLORS.border}`,
+                                        color: COLORS.text,
+                                        padding: '8px 12px',
+                                        fontSize: 14,
+                                        fontFamily: "'DM Mono', monospace",
+                                    }}
+                                >
+                                    <option value="all">All Status</option>
+                                    <option value="pending">Pending</option>
+                                    <option value="completed">Completed</option>
+                                    <option value="cancelled">Cancelled</option>
+                                </select>
+                                <button
+                                    type="submit"
+                                    style={{
+                                        background: COLORS.yellow,
+                                        color: COLORS.bg,
+                                        border: 'none',
+                                        padding: '8px 16px',
+                                        fontSize: 12,
+                                        fontFamily: "'Barlow Condensed', sans-serif",
+                                        fontWeight: 600,
+                                        textTransform: 'uppercase',
+                                        letterSpacing: '0.05em',
+                                        cursor: 'pointer',
+                                    }}
+                                >
+                                    SEARCH
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={clearFilters}
+                                    style={{
+                                        background: COLORS.border,
+                                        color: COLORS.text,
+                                        border: 'none',
+                                        padding: '8px 16px',
+                                        fontSize: 12,
+                                        fontFamily: "'Barlow Condensed', sans-serif",
+                                        fontWeight: 600,
+                                        textTransform: 'uppercase',
+                                        letterSpacing: '0.05em',
+                                        cursor: 'pointer',
+                                    }}
+                                >
+                                    CLEAR
+                                </button>
+                            </div>
+
+                            {/* Advanced Filters */}
+                            {showAdvanced && (
+                                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 16 }}>
+                                    {/* Product Filter */}
+                                    {products && (
+                                        <select
+                                            value={productId}
+                                            onChange={(e) => setProductId(e.target.value)}
+                                            style={{
+                                                background: COLORS.bg,
+                                                border: `1px solid ${COLORS.border}`,
+                                                color: COLORS.text,
+                                                padding: '8px 12px',
+                                                fontSize: 14,
+                                                fontFamily: "'DM Mono', monospace",
+                                            }}
+                                        >
+                                            <option value="">All Products</option>
+                                            {products.map(product => (
+                                                <option key={product.id} value={product.id}>{product.name}</option>
+                                            ))}
+                                        </select>
+                                    )}
+                                    
+                                    {/* Staff Filter (admin/manager only) */}
+                                    {isAdminOrManager && users && (
+                                        <select
+                                            value={userId}
+                                            onChange={(e) => setUserId(e.target.value)}
+                                            style={{
+                                                background: COLORS.bg,
+                                                border: `1px solid ${COLORS.border}`,
+                                                color: COLORS.text,
+                                                padding: '8px 12px',
+                                                fontSize: 14,
+                                                fontFamily: "'DM Mono', monospace",
+                                            }}
+                                        >
+                                            <option value="">All Staff</option>
+                                            {users.map(user => (
+                                                <option key={user.id} value={user.id}>{user.name}</option>
+                                            ))}
+                                        </select>
+                                    )}
+                                    <input
+                                        type="number"
+                                        placeholder="Min Amount"
+                                        value={minAmount}
+                                        onChange={(e) => setMinAmount(e.target.value)}
+                                        style={{
+                                            background: COLORS.bg,
+                                            border: `1px solid ${COLORS.border}`,
+                                            color: COLORS.text,
+                                            padding: '8px 12px',
+                                            fontSize: 14,
+                                            fontFamily: "'DM Mono', monospace",
+                                        }}
+                                    />
+                                    <input
+                                        type="number"
+                                        placeholder="Max Amount"
+                                        value={maxAmount}
+                                        onChange={(e) => setMaxAmount(e.target.value)}
+                                        style={{
+                                            background: COLORS.bg,
+                                            border: `1px solid ${COLORS.border}`,
+                                            color: COLORS.text,
+                                            padding: '8px 12px',
+                                            fontSize: 14,
+                                            fontFamily: "'DM Mono', monospace",
+                                        }}
+                                    />
+                                    <input
+                                        type="date"
+                                        placeholder="Date From"
+                                        value={dateFrom}
+                                        onChange={(e) => setDateFrom(e.target.value)}
+                                        style={{
+                                            background: COLORS.bg,
+                                            border: `1px solid ${COLORS.border}`,
+                                            color: COLORS.text,
+                                            padding: '8px 12px',
+                                            fontSize: 14,
+                                            fontFamily: "'DM Mono', monospace",
+                                        }}
+                                    />
+                                    <input
+                                        type="date"
+                                        placeholder="Date To"
+                                        value={dateTo}
+                                        onChange={(e) => setDateTo(e.target.value)}
+                                        style={{
+                                            background: COLORS.bg,
+                                            border: `1px solid ${COLORS.border}`,
+                                            color: COLORS.text,
+                                            padding: '8px 12px',
+                                            fontSize: 14,
+                                            fontFamily: "'DM Mono', monospace",
+                                        }}
+                                    />
+                                </div>
+                            )}
                         </form>
                     </div>
 
@@ -215,6 +374,22 @@ export default function Index({ orders, filters }) {
                                     >
                                         Date
                                     </th>
+                                    {isAdminOrManager && (
+                                        <th
+                                            style={{
+                                                padding: 16,
+                                                textAlign: "left",
+                                                fontSize: 12,
+                                                color: COLORS.muted,
+                                                textTransform: "uppercase",
+                                                letterSpacing: "0.05em",
+                                                fontFamily: "'Barlow Condensed', sans-serif",
+                                                fontWeight: 600,
+                                            }}
+                                        >
+                                            Created By
+                                        </th>
+                                    )}
                                     <th
                                         style={{
                                             padding: 16,
@@ -287,6 +462,11 @@ export default function Index({ orders, filters }) {
                                         <td style={{ padding: 16 }}>
                                             {new Date(order.created_at).toLocaleDateString()}
                                         </td>
+                                        {isAdminOrManager && (
+                                            <td style={{ padding: 16 }}>
+                                                {order.user?.name || 'Unknown'}
+                                            </td>
+                                        )}
                                         <td style={{ padding: 16 }}>
                                             {order.items.length} item{order.items.length !== 1 ? 's' : ''}
                                         </td>
@@ -352,7 +532,7 @@ export default function Index({ orders, filters }) {
                             {orders.links.map((link, index) => (
                                 <button
                                     key={index}
-                                    onClick={() => link.url && router.get(link.url, { search, date }, { preserveState: true })}
+                                    onClick={() => link.url && router.get(link.url, { search, status, userId, productId, minAmount, maxAmount, dateFrom, dateTo }, { preserveState: true })}
                                     disabled={!link.url}
                                     style={{
                                         background: link.active ? COLORS.yellow : COLORS.surface,
@@ -377,3 +557,4 @@ export default function Index({ orders, filters }) {
         </div>
     );
 }
+

@@ -1,10 +1,12 @@
 <?php
 
+use App\Http\Controllers\ActivityLogController;
 use App\Http\Controllers\AnalyticsController;
 use App\Http\Controllers\CategoryController;
 use App\Http\Controllers\OrderController;
 use App\Http\Controllers\ProductController;
 use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\UserController;
 use Illuminate\Foundation\Application;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
@@ -25,11 +27,25 @@ Route::get('/dashboard', function () {
                                    ->sum('total');
     $pendingOrders = \App\Models\Order::where('status', 'pending')->count();
     $lowStockProducts = \App\Models\Product::where('stock', '<=', 5)->count();
+    
+    // Get low stock products for alerts
+    $lowStockProductList = \App\Models\Product::where('stock', '<=', 5)
+        ->with('category')
+        ->limit(10)
+        ->get();
+    
+    // Get recent orders for staff tracking
+    $recentOrders = \App\Models\Order::with('user')
+        ->latest()
+        ->limit(5)
+        ->get();
 
     return Inertia::render('Dashboard', [
         'todaySales' => $todaySales,
         'pendingOrders' => $pendingOrders,
         'lowStockProducts' => $lowStockProducts,
+        'lowStockProductList' => $lowStockProductList,
+        'recentOrders' => $recentOrders,
     ]);
 })->middleware(['auth', 'verified'])->name('dashboard');
 
@@ -62,6 +78,8 @@ Route::middleware(['auth', 'role:admin,manager'])->group(function () {
 // Product routes - Admin and Manager
 Route::middleware(['auth', 'role:admin,manager'])->group(function () {
     Route::resource('products', ProductController::class);
+    Route::get('products/import-template', [ProductController::class, 'importTemplate'])->name('products.import-template');
+    Route::post('products/import', [ProductController::class, 'import'])->name('products.import');
 });
 
 // Order routes - Staff, Manager, Admin
@@ -75,4 +93,15 @@ Route::middleware(['auth', 'role:admin,manager'])->group(function () {
     Route::get('analytics', [AnalyticsController::class, 'index'])->name('analytics.index');
 });
 
+// Activity Logs routes - Admin and Manager
+Route::middleware(['auth', 'role:admin,manager'])->group(function () {
+    Route::get('activity-logs', [ActivityLogController::class, 'index'])->name('activity-logs.index');
+});
+
+// User routes - Admin only
+Route::middleware(['auth', 'role:admin'])->group(function () {
+    Route::resource('users', UserController::class);
+});
+
 require __DIR__.'/auth.php';
+
