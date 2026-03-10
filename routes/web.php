@@ -1,10 +1,10 @@
 <?php
 
+use App\Http\Controllers\AnalyticsController;
 use App\Http\Controllers\CategoryController;
 use App\Http\Controllers\OrderController;
 use App\Http\Controllers\ProductController;
 use App\Http\Controllers\ProfileController;
-use App\Http\Controllers\UserController;
 use Illuminate\Foundation\Application;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
@@ -70,9 +70,9 @@ Route::middleware(['auth'])->group(function () {
     Route::get('orders/{order}/receipt', [OrderController::class, 'downloadReceipt'])->name('orders.receipt');
 });
 
-// User routes - Admin only
-Route::middleware(['auth', 'role:admin'])->group(function () {
-    Route::resource('users', UserController::class);
+// Analytics routes - Admin and Manager
+Route::middleware(['auth', 'role:admin,manager'])->group(function () {
+    Route::get('analytics', [AnalyticsController::class, 'index'])->name('analytics.index');
 });
 
 require __DIR__.'/auth.php';

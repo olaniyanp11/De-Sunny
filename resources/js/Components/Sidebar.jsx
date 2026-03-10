@@ -5,6 +5,7 @@ import {
     HiOutlineClipboardList,
     HiOutlineUsers,
     HiOutlineChartBar,
+    HiOutlineTrendingUp,
     HiOutlineCog,
     HiOutlineLogout
 } from "react-icons/hi";
@@ -38,6 +39,7 @@ const getNavItems = (userRole) => {
 
     if (userRole === 'manager' || userRole === 'admin') {
         baseItems.push(
+            { id: "analytics", label: "ANALYTICS", icon: HiOutlineTrendingUp, route: "analytics.index" },
             { id: "products", label: "PRODUCTS", icon: HiOutlineShoppingBag, route: "products.index" },
             { id: "categories", label: "CATEGORIES", icon: HiOutlineChartBar, route: "categories.index" },
             { id: "orders", label: "ORDERS", icon: HiOutlineClipboardList, route: "orders.index" },
