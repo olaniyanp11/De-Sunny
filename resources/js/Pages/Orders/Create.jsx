@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Link, useForm } from '@inertiajs/react';
+import { Link, router } from '@inertiajs/react';
 import Sidebar from '@/Components/Sidebar';
 
 const COLORS = {
@@ -18,10 +18,10 @@ const COLORS = {
     orange: "#fb923c",
 };
 
-export default function Create({ products }) {
+export default function Create({ products, errors }) {
     const [cart, setCart] = useState([]);
     const [selectedCategory, setSelectedCategory] = useState('');
-    const { post, processing } = useForm();
+    const [processing, setProcessing] = useState(false);
 
     const categories = [...new Set(products.map(p => p.category?.name).filter(Boolean))];
 
@@ -68,11 +68,20 @@ export default function Create({ products }) {
     const handleCheckout = () => {
         if (cart.length === 0) return;
 
-        post(route('orders.store'), {
+        setProcessing(true);
+        console.log('Submitting order with cart:', cart);
+        console.log('Items to send:', cart.map(item => ({
+            product_id: item.product_id,
+            quantity: item.quantity,
+        })));
+
+        router.post(route('orders.store'), {
             items: cart.map(item => ({
                 product_id: item.product_id,
                 quantity: item.quantity,
             })),
+        }, {
+            onFinish: () => setProcessing(false),
         });
     };
 
@@ -305,6 +314,20 @@ export default function Create({ products }) {
                                 <span style={{ color: COLORS.yellow }}>₦{total.toFixed(2)}</span>
                             </div>
                         </div>
+
+                        {errors?.error && (
+                            <div
+                                style={{
+                                    background: COLORS.red,
+                                    color: COLORS.text,
+                                    padding: 16,
+                                    marginBottom: 16,
+                                    border: `1px solid ${COLORS.border}`,
+                                }}
+                            >
+                                {errors.error}
+                            </div>
+                        )}
 
                         <button
                             onClick={handleCheckout}

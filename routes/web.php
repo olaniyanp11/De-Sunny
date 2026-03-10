@@ -39,14 +39,35 @@ Route::middleware('auth')->group(function () {
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
 });
 
+// Debug route
+Route::get('/debug', function () {
+    $products = \App\Models\Product::with('category')->get();
+    $data = $products->map(function ($p) {
+        return [
+            'id' => $p->id,
+            'name' => $p->name,
+            'stock' => $p->stock,
+            'category_id' => $p->category_id,
+            'category_name' => $p->category?->name,
+        ];
+    });
+    return response()->json($data);
+});
+
 // Category routes - Admin and Manager
 Route::middleware(['auth', 'role:admin,manager'])->group(function () {
     Route::resource('categories', CategoryController::class);
 });
 
+// Product routes - Admin and Manager
+Route::middleware(['auth', 'role:admin,manager'])->group(function () {
+    Route::resource('products', ProductController::class);
+});
+
 // Order routes - Staff, Manager, Admin
 Route::middleware(['auth'])->group(function () {
     Route::resource('orders', OrderController::class)->except(['edit', 'update', 'destroy']);
+    Route::get('orders/{order}/receipt', [OrderController::class, 'downloadReceipt'])->name('orders.receipt');
 });
 
 // User routes - Admin only

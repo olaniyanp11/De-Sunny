@@ -184,6 +184,30 @@ export default function Show({ order }) {
                     </div>
                 </div>
 
+                {/* Download Receipt Button */}
+                <a
+                    href={route('orders.receipt', order.id)}
+                    style={{
+                        display: "block",
+                        width: "100%",
+                        background: COLORS.green,
+                        color: COLORS.bg,
+                        border: "none",
+                        padding: "16px",
+                        fontFamily: "'Barlow Condensed', sans-serif",
+                        fontWeight: 700,
+                        fontSize: 15,
+                        letterSpacing: "0.15em",
+                        textTransform: "uppercase",
+                        textDecoration: "none",
+                        textAlign: "center",
+                        cursor: "pointer",
+                        marginBottom: 16,
+                    }}
+                >
+                    DOWNLOAD RECEIPT (PDF)
+                </a>
+
                 {/* Print Receipt Button */}
                 <button
                     onClick={() => window.print()}

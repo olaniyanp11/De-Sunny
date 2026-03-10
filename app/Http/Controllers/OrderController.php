@@ -7,6 +7,7 @@ use App\Models\Product;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
+use Barryvdh\DomPDF\Facade\Pdf;
 
 class OrderController extends Controller
 {
@@ -63,39 +64,62 @@ class OrderController extends Controller
      */
     public function store(Request $request)
     {
+        \Log::info('Order store request received', [
+            'user_id' => auth()->id(),
+            'request_data' => $request->all(),
+            'headers' => $request->headers->all(),
+        ]);
+
         $request->validate([
             'items' => 'required|array|min:1',
             'items.*.product_id' => 'required|exists:products,id',
             'items.*.quantity' => 'required|integer|min:1',
         ]);
 
+        \Log::info('Validation passed for user ' . auth()->id());
+
         $items = [];
         $total = 0;
 
-        DB::transaction(function () use ($request, &$items, &$total) {
-            foreach ($request->items as $item) {
-                $product = Product::find($item['product_id']);
-                if ($product->stock < $item['quantity']) {
-                    throw new \Exception("Insufficient stock for {$product->name}");
+        try {
+            DB::transaction(function () use ($request, &$items, &$total) {
+                foreach ($request->items as $item) {
+                    \Log::info('Processing item', $item);
+                    $product = Product::find($item['product_id']);
+                    if (!$product) {
+                        throw new \Exception("Product with ID {$item['product_id']} not found");
+                    }
+                    if ($product->stock < $item['quantity']) {
+                        throw new \Exception("Insufficient stock for {$product->name}. Available: {$product->stock}");
+                    }
+                    $product->decrement('stock', $item['quantity']);
+                    $items[] = [
+                        'product_id' => $product->id,
+                        'quantity' => $item['quantity'],
+                        'price' => $product->price,
+                    ];
+                    $total += $product->price * $item['quantity'];
                 }
-                $product->decrement('stock', $item['quantity']);
-                $items[] = [
-                    'product_id' => $product->id,
-                    'quantity' => $item['quantity'],
-                    'price' => $product->price,
-                ];
-                $total += $product->price * $item['quantity'];
-            }
 
-            Order::create([
+                $order = Order::create([
+                    'user_id' => auth()->id(),
+                    'total' => $total,
+                    'status' => 'completed',
+                    'items' => $items,
+                ]);
+
+                \Log::info('Order created successfully', ['order_id' => $order->id, 'total' => $total]);
+            });
+
+            return redirect()->route('orders.index')->with('success', 'Order completed successfully.');
+        } catch (\Exception $e) {
+            \Log::error('Order creation failed', [
                 'user_id' => auth()->id(),
-                'total' => $total,
-                'status' => 'completed',
-                'items' => $items,
+                'error' => $e->getMessage(),
+                'request_data' => $request->all(),
             ]);
-        });
-
-        return redirect()->route('orders.index')->with('success', 'Order completed successfully.');
+            return redirect()->back()->withErrors(['error' => $e->getMessage()]);
+        }
     }
 
     /**
@@ -107,6 +131,18 @@ class OrderController extends Controller
         return Inertia::render('Orders/Show', [
             'order' => $order,
         ]);
+    }
+
+    /**
+     * Download PDF receipt for the order.
+     */
+    public function downloadReceipt(Order $order)
+    {
+        $order->load('user');
+
+        $pdf = Pdf::loadView('receipt', compact('order'));
+
+        return $pdf->download('receipt-' . $order->id . '.pdf');
     }
 
     /**

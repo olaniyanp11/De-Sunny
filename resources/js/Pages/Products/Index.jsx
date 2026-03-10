@@ -111,7 +111,7 @@ export default function Index({ products }) {
                                 Stock: {product.stock}
                             </p>
                             <p style={{ color: COLORS.muted, marginBottom: 16 }}>
-                                Category: {product.category}
+                                Category: {product.category?.name || 'No Category'}
                             </p>
                             <div
                                 style={{

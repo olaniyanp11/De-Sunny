@@ -98,7 +98,7 @@ export default function Show({ product }) {
                             <strong>Stock:</strong> {product.stock}
                         </p>
                         <p style={{ color: COLORS.muted, marginBottom: 16 }}>
-                            <strong>Category:</strong> {product.category}
+                            <strong>Category:</strong> {product.category?.name || 'No Category'}
                         </p>
                         {product.description && (
                             <p style={{ color: COLORS.text, lineHeight: 1.6 }}>

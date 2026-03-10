@@ -171,7 +171,7 @@ export default function LoginPage({ status, canResetPassword }) {
                                 textTransform: "uppercase",
                             }}
                         >
-                            STOREFRONT
+                            DESUNNY-STORE
                         </span>
                     </div>
                     <div
